@@ -1,8 +1,8 @@
 <!DOCTYPE html>
-<html lang="zh-CN">
+<html lang="en">
 <head>
   <meta charset="UTF-8">
-  <title>GW2 交易所追踪 - 幽界凝胶</title>
+  <title>GW2 Trading Post Tracker</title>
   <style>
     body {
       font-family: sans-serif;
@@ -11,59 +11,71 @@
       text-align: center;
       padding: 2em;
     }
-    img {
-      width: 64px;
-      height: 64px;
-    }
     .price-box {
       background: white;
       padding: 1em;
       border-radius: 10px;
       box-shadow: 0 4px 10px rgba(0,0,0,0.1);
       display: inline-block;
-      margin-top: 1em;
+      margin: 1em;
+      width: 200px;
+      vertical-align: top;
+    }
+    img {
+      width: 64px;
+      height: 64px;
     }
     .price {
-      font-size: 1.2em;
+      font-size: 1em;
       margin: 0.5em 0;
     }
   </style>
 </head>
 <body>
-  <h1>GW2 交易所追踪</h1>
-  <div id="itemInfo"></div>
-  <div class="price-box" id="priceBox">
-    <div class="price" id="buyPrice">加载中...</div>
-    <div class="price" id="sellPrice"></div>
-  </div>
+  <h1>GW2 Trading Post Tracker</h1>
+  <div id="itemsContainer"></div>
 
   <script>
-    const itemId = 19721; 30698;
+    const itemIds = [19721, 30698]; // Add more item IDs here
 
-    async function loadItemInfoOnce() {
-      const res = await fetch(`https://api.guildwars2.com/v2/items/${itemId}`);
-      const data = await res.json();
-      document.getElementById("itemInfo").innerHTML = `
-        <h2>${data.name}</h2>
-        <img src="${data.icon}" alt="${data.name}">
-      `;
+    async function loadItem(itemId) {
+      try {
+        const [itemRes, priceRes] = await Promise.all([
+          fetch(`https://api.guildwars2.com/v2/items/${itemId}?lang=en`),
+          fetch(`https://api.guildwars2.com/v2/commerce/prices/${itemId}`)
+        ]);
+
+        const itemData = await itemRes.json();
+        const priceData = await priceRes.json();
+
+        const buyPrice = (priceData.buys.unit_price / 100).toFixed(2);
+        const sellPrice = (priceData.sells.unit_price / 100).toFixed(2);
+
+        const itemBox = document.createElement('div');
+        itemBox.className = 'price-box';
+        itemBox.innerHTML = `
+          <h2>${itemData.name}</h2>
+          <img src="${itemData.icon}" alt="${itemData.name}">
+          <div class="price">Buy Price: ${buyPrice} silver</div>
+          <div class="price">Sell Price: ${sellPrice} silver</div>
+        `;
+        document.getElementById('itemsContainer').appendChild(itemBox);
+      } catch (error) {
+        console.error("Error loading item:", itemId, error);
+      }
     }
 
-    async function loadPriceData() {
-      const res = await fetch(`https://api.guildwars2.com/v2/commerce/prices/${itemId}`);
-      const data = await res.json();
-      const buyPrice = (data.buys.unit_price / 100).toFixed(2);
-      const sellPrice = (data.sells.unit_price / 100).toFixed(2);
-      document.getElementById("buyPrice").innerText = `买入价: ${buyPrice} 银币`;
-      document.getElementById("sellPrice").innerText = `卖出价: ${sellPrice} 银币`;
+    function refreshItems() {
+      const container = document.getElementById('itemsContainer');
+      container.innerHTML = ''; // Clear existing
+      itemIds.forEach(loadItem);
     }
 
-    // 初始化页面
-    loadItemInfoOnce();
-    loadPriceData();
+    // Initial load
+    refreshItems();
 
-    // 每 30 秒刷新价格
-    setInterval(loadPriceData, 30000);
+    // Refresh prices every 30 seconds
+    setInterval(refreshItems, 30000);
   </script>
 </body>
 </html>
