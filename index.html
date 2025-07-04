@@ -1,0 +1,69 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <title>GW2 交易所追踪 - 幽界凝胶</title>
+  <style>
+    body {
+      font-family: sans-serif;
+      background: #f0f2f5;
+      color: #333;
+      text-align: center;
+      padding: 2em;
+    }
+    img {
+      width: 64px;
+      height: 64px;
+    }
+    .price-box {
+      background: white;
+      padding: 1em;
+      border-radius: 10px;
+      box-shadow: 0 4px 10px rgba(0,0,0,0.1);
+      display: inline-block;
+      margin-top: 1em;
+    }
+    .price {
+      font-size: 1.2em;
+      margin: 0.5em 0;
+    }
+  </style>
+</head>
+<body>
+  <h1>GW2 交易所追踪</h1>
+  <div id="itemInfo"></div>
+  <div class="price-box" id="priceBox">
+    <div class="price" id="buyPrice">加载中...</div>
+    <div class="price" id="sellPrice"></div>
+  </div>
+
+  <script>
+    const itemId = 7295;
+
+    async function loadItemInfoOnce() {
+      const res = await fetch(`https://api.guildwars2.com/v2/items/${itemId}`);
+      const data = await res.json();
+      document.getElementById("itemInfo").innerHTML = `
+        <h2>${data.name}</h2>
+        <img src="${data.icon}" alt="${data.name}">
+      `;
+    }
+
+    async function loadPriceData() {
+      const res = await fetch(`https://api.guildwars2.com/v2/commerce/prices/${itemId}`);
+      const data = await res.json();
+      const buyPrice = (data.buys.unit_price / 100).toFixed(2);
+      const sellPrice = (data.sells.unit_price / 100).toFixed(2);
+      document.getElementById("buyPrice").innerText = `买入价: ${buyPrice} 银币`;
+      document.getElementById("sellPrice").innerText = `卖出价: ${sellPrice} 银币`;
+    }
+
+    // 初始化页面
+    loadItemInfoOnce();
+    loadPriceData();
+
+    // 每 30 秒刷新价格
+    setInterval(loadPriceData, 30000);
+  </script>
+</body>
+</html>
